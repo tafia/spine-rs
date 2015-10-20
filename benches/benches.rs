@@ -19,7 +19,7 @@ fn loading_json(bencher: &mut test::Bencher) {
 fn loading_skeleton(bencher: &mut test::Bencher) {
     let src: &[u8] = include_bytes!("../tests/example.json");
     bencher.iter(|| {
-        spine::Skeleton::from_reader(BufReader::new(src))
+        spine::skeleton::Skeleton::from_reader(BufReader::new(src))
     });
 }
 
@@ -37,10 +37,10 @@ fn animation(bencher: &mut test::Bencher) {
 fn animation_skeleton(bencher: &mut test::Bencher) {
 
     let src: &[u8] = include_bytes!("../tests/example.json");
-    let doc = spine::Skeleton::from_reader(BufReader::new(src)).unwrap();
+    let doc = spine::skeleton::Skeleton::from_reader(BufReader::new(src)).unwrap();
 
     bencher.iter(|| {
-        if let Ok(mut anim) = doc.get_animated_skin("default", Some("walk")) {
+        if let Ok(anim) = doc.get_animated_skin("default", Some("walk")) {
             anim.interpolate(0.01);
         }
     })
@@ -61,7 +61,7 @@ fn animation_all(bencher: &mut test::Bencher) {
 fn animation_skeleton_all(bencher: &mut test::Bencher) {
 
     let src: &[u8] = include_bytes!("../tests/example.json");
-    let doc = spine::Skeleton::from_reader(BufReader::new(src)).unwrap();
+    let doc = spine::skeleton::Skeleton::from_reader(BufReader::new(src)).unwrap();
 
     bencher.iter(|| {
         if let Ok(anim) = doc.get_animated_skin("default", Some("walk")) {

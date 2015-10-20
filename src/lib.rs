@@ -80,15 +80,11 @@ extern crate rustc_serialize as serialize;
 
 use color::{Rgb, Rgba};
 use cgmath::Matrix4;
-
 use std::io::Read;
 
 mod json;
-mod skeleton;
-mod atlas;
-
-pub use skeleton::Skeleton;
-pub use atlas::Atlas;
+pub mod skeleton;
+pub mod atlas;
 
 /// Spine document loaded in memory.
 pub struct SpineDocument {

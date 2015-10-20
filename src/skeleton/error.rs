@@ -1,3 +1,5 @@
+//! Module to handle all spine errors
+
 use serialize::hex::FromHexError;
 use serialize::json::ParserError;
 use from_json::FromJsonError;

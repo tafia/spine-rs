@@ -1,6 +1,9 @@
+//! Module to interpolate animated sprites
+
 use skeleton;
 use skeleton::error::SkeletonError;
 
+/// Struct to handle animated skin and calculate sprites
 pub struct SkinAnimation<'a> {
     skeleton: &'a skeleton::Skeleton,
     animation: Option<&'a skeleton::Animation>,
@@ -9,9 +12,13 @@ pub struct SkinAnimation<'a> {
     duration: f32
 }
 
-pub struct CalculatedSlot {
+/// Interpolated slot with attachment and color
+pub struct Sprite {
+    /// attachment name
     pub attachment: String,
+    /// scale, rotate, translate
     pub srt: skeleton::SRT,
+    /// color
     pub color: Vec<u8>
 }
 
@@ -46,7 +53,7 @@ impl<'a> SkinAnimation<'a> {
     }
 
     /// Interpolates animated slots at given time
-    pub fn interpolate(&self, time: f32) -> Option<Vec<CalculatedSlot>> {
+    pub fn interpolate(&self, time: f32) -> Option<Vec<Sprite>> {
 
         if time > self.duration {
             return None;
@@ -98,7 +105,7 @@ impl<'a> SkinAnimation<'a> {
                 let attach_name = skin_attach.name.clone().or_else(|| slot.attachment.clone())
                     .expect("no attachment name provided");
 
-                result.push(CalculatedSlot {
+                result.push(Sprite {
                     attachment: attach_name,
                     srt: srt,
                     color: color
@@ -121,6 +128,7 @@ impl<'a> SkinAnimation<'a> {
     }
 }
 
+/// Iterator over a constant period
 pub struct AnimationIter<'a> {
     skin_animation: &'a SkinAnimation<'a>,
     time: f32,
@@ -128,8 +136,8 @@ pub struct AnimationIter<'a> {
 }
 
 impl<'a> Iterator for AnimationIter<'a> {
-    type Item = Vec<CalculatedSlot>;
-    fn next(&mut self) -> Option<Vec<CalculatedSlot>> {
+    type Item = Vec<Sprite>;
+    fn next(&mut self) -> Option<Vec<Sprite>> {
         let result = self.skin_animation.interpolate(self.time);
         self.time += self.delta;
         result

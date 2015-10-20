@@ -31,7 +31,7 @@ impl Interpolate for Vec<u8> {
 trait Curve<T> {
     fn time(&self) -> f32;
     fn curve(&self) -> json::TimelineCurve;
-    fn value(&self) -> Result<T, skeleton::SkeletonError>;
+    fn value(&self) -> Result<T, skeleton::error::SkeletonError>;
 }
 
 /// Macro rule to implement curve based on json structs
@@ -45,7 +45,7 @@ macro_rules! impl_curve {
             fn curve(&self) -> json::TimelineCurve {
                 self.curve.clone().unwrap_or(json::TimelineCurve::CurveLinear)
             }
-            fn value(&self) -> Result<$from, skeleton::SkeletonError> {
+            fn value(&self) -> Result<$from, skeleton::error::SkeletonError> {
                 $f(&self)
             }
         }
@@ -65,7 +65,8 @@ impl_curve!(json::BoneRotateTimeline, f32, |t: &json::BoneRotateTimeline| {
 });
 
 impl_curve!(json::SlotColorTimeline, Vec<u8>, |t: &json::SlotColorTimeline| {
-    t.color.clone().unwrap_or("FFFFFFFF".into()).from_hex().map_err(|e| skeleton::SkeletonError::from(e))
+    t.color.clone().unwrap_or("FFFFFFFF".into()).from_hex()
+        .map_err(|e| skeleton::error::SkeletonError::from(e))
 });
 
 struct CurveTimeline<T> {
@@ -143,7 +144,7 @@ impl<T: Interpolate + Clone> CurveTimelines<T> {
 
     /// Converts vector of json timelines to vector or timelines
     fn from_json_vec<U: Curve<T>> (jtimelines: Option<Vec<U>>)
-        -> Result<CurveTimelines<T>, skeleton::SkeletonError>
+        -> Result<CurveTimelines<T>, skeleton::error::SkeletonError>
     {
     	match jtimelines {
     	    None => Ok(CurveTimelines { timelines: Vec::new() }),
@@ -191,7 +192,7 @@ impl BoneTimeline {
 
     /// converts json data into BoneTimeline
     pub fn from_json(json: json::BoneTimeline)
-        -> Result<BoneTimeline, skeleton::SkeletonError>
+        -> Result<BoneTimeline, skeleton::error::SkeletonError>
     {
         let translate = try!(CurveTimelines::from_json_vec(json.translate));
         let rotate = try!(CurveTimelines::from_json_vec(json.rotate));
@@ -223,7 +224,7 @@ pub struct SlotTimeline {
 }
 
 impl SlotTimeline {
-    pub fn from_json(json: json::SlotTimeline) -> Result<SlotTimeline, skeleton::SkeletonError> {
+    pub fn from_json(json: json::SlotTimeline) -> Result<SlotTimeline, skeleton::error::SkeletonError> {
         let color = try!(CurveTimelines::from_json_vec(json.color));
         Ok(SlotTimeline {
             attachment: json.attachment,

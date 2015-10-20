@@ -1,13 +1,23 @@
+//! Module to import .atlas files
+
+
 use std::fs::File;
 use std::io::{BufReader, Lines};
 use std::io::prelude::*;
 
+/// atlas texture
 pub struct Texture {
+    /// rotate
     pub rotate: bool,
+    /// position
     pub xy: (u16, u16),
+    /// size
     pub size: (u16, u16),
+    /// orig
     pub orig: (u16, u16),
+    /// offset
     pub offset: (u16, u16),
+    /// index
     pub index: i16,
 }
 

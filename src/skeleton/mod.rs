@@ -1,9 +1,9 @@
-/// Skeleton structs
-/// Owns json::Animation
+//! Skeleton structs
+//! Owns json::Animation
 
-mod error;
+pub mod error;
 mod timelines;
-mod animation;
+pub mod animation;
 
 use json;
 use from_json;
@@ -13,7 +13,7 @@ use std::f32::consts::PI;
 use serialize::hex::FromHex;
 
 // Reexport skeleton modules
-pub use self::error::SkeletonError;
+use self::error::SkeletonError;
 use self::timelines::{BoneTimeline, SlotTimeline};
 use self::animation::SkinAnimation;
 
@@ -30,13 +30,13 @@ fn slot_index(name: &str, slots: &[Slot]) -> Result<usize, SkeletonError> {
 /// Skeleton data converted from json and loaded into memory
 pub struct Skeleton {
     /// bones for the skeleton, hierarchically ordered
-    pub bones: Vec<Bone>,
+    bones: Vec<Bone>,
     /// slots
-    pub slots: Vec<Slot>,
+    slots: Vec<Slot>,
     /// skins : key: skin name, value: slots attachments
-    pub skins: HashMap<String, Skin>,
+    skins: HashMap<String, Skin>,
     /// all the animations
-    pub animations: HashMap<String, Animation>
+    animations: HashMap<String, Animation>
 }
 
 impl Skeleton {
@@ -117,12 +117,14 @@ impl Skeleton {
 /// defines a set of slot with custom attachments
 /// slots: Vec<(slot_index, HashMap<custom_attachment_name, Attachment>)>
 /// TODO: simpler architecture
-pub struct Skin {
-    pub slots: Vec<(usize, HashMap<String, Attachment>)>
+struct Skin {
+    /// all slots modified by the skin, the default skin contains all skeleton bones
+    slots: Vec<(usize, HashMap<String, Attachment>)>
 }
 
 impl Skin {
-    pub fn find(&self, slot_index: usize, attach_name: &str) -> Option<&Attachment> {
+    /// find attachment in a skin
+    fn find(&self, slot_index: usize, attach_name: &str) -> Option<&Attachment> {
         self.slots.iter().filter_map(|&(i, ref attachs)|
             if i == slot_index {
                 attachs.get(attach_name)
@@ -133,7 +135,7 @@ impl Skin {
 }
 
 /// Animation with precomputed data
-pub struct Animation {
+struct Animation {
     bones: Vec<(usize, BoneTimeline)>,
     slots: Vec<(usize, SlotTimeline)>,
     events: Vec<json::EventKeyframe>,
@@ -194,15 +196,16 @@ impl Animation {
 /// Scale, Rotate, Translate struct
 #[derive(Debug, Clone)]
 pub struct SRT {
-    // scale
+    /// scale
     pub scale: (f32, f32),
-    // rotation
+    /// rotation
     pub rotation: f32,
-    // position or translation
+    /// position or translation
     pub position: (f32, f32),
 }
 
 impl SRT {
+    /// add assign other srt to current srt
     pub fn add_assign(&mut self, other: &SRT) {
         self.position.0 += other.position.0;
         self.position.1 += other.position.1;
@@ -212,7 +215,8 @@ impl SRT {
     }
 }
 
-pub struct Bone {
+/// skeleton bone
+struct Bone {
     name: String,
     parent_index: Option<usize>,
     length: f32,
@@ -238,7 +242,8 @@ impl Bone {
     }
 }
 
-pub struct Slot {
+/// skeleton slot
+struct Slot {
     name: String,
     bone_index: usize,
     color: Vec<u8>,
@@ -258,7 +263,8 @@ impl Slot {
     }
 }
 
-pub struct Attachment {
+/// skeletom animation
+struct Attachment {
     name: Option<String>,
     type_: json::AttachmentType,
     srt: SRT,
