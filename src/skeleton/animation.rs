@@ -7,8 +7,13 @@ use skeleton::error::SkeletonError;
 pub struct SkinAnimation<'a> {
     skeleton: &'a skeleton::Skeleton,
     animation: Option<&'a skeleton::Animation>,
-    skin: &'a skeleton::Skin,
-    default_skin: &'a skeleton::Skin,
+    // skin: &'a skeleton::Skin,
+    // default_skin: &'a skeleton::Skin,
+    
+    // attachments as defined by skin name (or default skin) ordered by slot
+    // it is possible not to find an attachment for a slot on setup pose 
+    // as it may be set during the animation
+    skin_attachments: Vec<Option<&'a skeleton::Attachment>>
     duration: f32
 }
 
@@ -19,7 +24,9 @@ pub struct Sprite {
     /// scale, rotate, translate
     pub srt: skeleton::SRT,
     /// color
-    pub color: Vec<u8>
+    pub color: Vec<u8>,
+    /// positions
+    pub positions: [(f32, f32); 4]
 }
 
 impl<'a> SkinAnimation<'a> {
@@ -28,11 +35,16 @@ impl<'a> SkinAnimation<'a> {
     pub fn new(skeleton: &'a skeleton::Skeleton, skin: &str, animation: Option<&str>)
         -> Result<SkinAnimation<'a>, SkeletonError>
     {
-        // try getting skins
+        // search all attachments defined by the skin name (use 'default' skin if not found)
         let skin = try!(skeleton.skins.get(skin)
             .ok_or(SkeletonError::SkinNotFound(skin.into())));
         let default_skin = try!(skeleton.skins.get("default")
             .ok_or(SkeletonError::SkinNotFound("default".into())));
+        let skin_attachments = self.skeleton.slots.iter().enumerate().map(|(i, slot)| {
+            slot.attachment.as_ref().and_then(|slot_attach|
+                self.skin.find(i, &slot_attach)
+                .or_else(|| self.default_skin.find(i, &slot_attach)))
+        }.collect();
 
         // get animation
         let (animation, duration) = if let Some(animation) = animation {
@@ -46,9 +58,10 @@ impl<'a> SkinAnimation<'a> {
         Ok(SkinAnimation {
             skeleton: skeleton,
             animation: animation,
-            skin: skin,
-            default_skin: default_skin,
+            // skin: skin,
+            // default_skin: default_skin,
             duration: duration,
+            skin_attachments: skin_attachments,
         })
     }
 
@@ -85,21 +98,20 @@ impl<'a> SkinAnimation<'a> {
         // loop all slots and animate them
         let mut result = Vec::new();
         for (i, slot) in self.skeleton.slots.iter().enumerate() {
-
-            // nothing to show if there is no Attachment
-            if let Some(ref skin_attach) = slot.attachment.as_ref()
-                .and_then(|slot_attach|
-                    // TODO: find a better way to store skins
-                    self.skin.find(i, &slot_attach)
-                    .or_else(|| self.default_skin.find(i, &slot_attach))) {
+            
+            // TODO: change attachment if animating
+            
+            // nothing to show if there is no attachment
+            if let Some(ref skin_attach) = self.skin_attachments[i] {
 
                 let mut srt = srts[slot.bone_index].clone();
                 srt.add_assign(&skin_attach.srt);
 
                 // color
                 let color = self.animation
-                    .and_then(|anim| anim.slots.iter().find(|&&(idx, _)| idx == i ))
-                    .map(|&(_, ref anim)| (*anim).interpolate_color(time))
+                    .and_then(|anim| anim.slots.iter()
+                        .find(|&&(idx, _)| idx == i )
+                        .map(|&(_, ref anim)| (*anim).interpolate_color(time)))
                     .unwrap_or(vec![255, 255, 255, 255]);
 
                 let attach_name = skin_attach.name.clone().or_else(|| slot.attachment.clone())
@@ -110,8 +122,6 @@ impl<'a> SkinAnimation<'a> {
                     srt: srt,
                     color: color
                 });
-
-                // TODO: change attachment if animating
             }
         }
 
