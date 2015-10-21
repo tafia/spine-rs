@@ -10,6 +10,7 @@ use from_json;
 use std::collections::HashMap;
 use std::io::Read;
 use std::f32::consts::PI;
+use std::f32::{cos, sin};
 use serialize::hex::FromHex;
 
 // Reexport skeleton modules
@@ -289,4 +290,27 @@ impl Attachment {
             mode: attachment.mode
         }
     }
+    
+    /// gets 4 positions defining the transformed attachment
+    fn get_positions(&self, srt: &SRT) -> [[f32; 2]; 4] {
+        // compute final transformations
+        let srt = self.srt.clone().add_assign(srt);
+        // scaled half-sizes (shape is initially centered)
+        let (w2, h2) = (self.size.0 / 2.0 * srt.scale.0, self.size.1 / 2.0 * srt.scale.1);
+        // rotation matrix
+        let (cos, sin) = (srt.rotation.cos(), srt.rotation.sin());
+        let rotation = [[cos, -sin], [sin, cos]];
+        // apply rotation then translation on each vector
+        [rotate_translate!([-w2,  y2], rotation, srt.position),
+         rotate_translate!([ w2,  y2], rotation, srt.position),
+         rotate_translate!([ w2, -y2], rotation, srt.position),
+         rotate_translate!([-w2, -y2], rotation, srt.position)]
+    }
+}
+
+macro_rules! rotate_translate {
+    ($v: expr, $rotation: expr, $translate: expr) => {
+        [$rotation[0][0] * $v[0] + $rotation[0][1] * $v[1] + $translate.0, 
+         $rotation[1][0] * $v[0] + $rotation[1][1] * $v[1] + $translate.1]
+    };
 }
