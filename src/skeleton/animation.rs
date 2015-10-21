@@ -9,11 +9,11 @@ pub struct SkinAnimation<'a> {
     animation: Option<&'a skeleton::Animation>,
     // skin: &'a skeleton::Skin,
     // default_skin: &'a skeleton::Skin,
-    
+
     // attachments as defined by skin name (or default skin) ordered by slot
-    // it is possible not to find an attachment for a slot on setup pose 
+    // it is possible not to find an attachment for a slot on setup pose
     // as it may be set during the animation
-    skin_attachments: Vec<Option<&'a skeleton::Attachment>>
+    skin_attachments: Vec<Option<&'a skeleton::Attachment>>,
     duration: f32
 }
 
@@ -25,8 +25,7 @@ pub struct Sprite {
     pub srt: skeleton::SRT,
     /// color
     pub color: Vec<u8>,
-    /// positions
-    pub positions: [(f32, f32); 4]
+    //pub positions: [(f32, f32); 4]
 }
 
 impl<'a> SkinAnimation<'a> {
@@ -40,11 +39,10 @@ impl<'a> SkinAnimation<'a> {
             .ok_or(SkeletonError::SkinNotFound(skin.into())));
         let default_skin = try!(skeleton.skins.get("default")
             .ok_or(SkeletonError::SkinNotFound("default".into())));
-        let skin_attachments = self.skeleton.slots.iter().enumerate().map(|(i, slot)| {
+        let skin_attachments = skeleton.slots.iter().enumerate().map(|(i, slot)| {
             slot.attachment.as_ref().and_then(|slot_attach|
-                self.skin.find(i, &slot_attach)
-                .or_else(|| self.default_skin.find(i, &slot_attach)))
-        }.collect();
+                skin.find(i, &slot_attach).or_else(|| default_skin.find(i, &slot_attach)))
+        }).collect();
 
         // get animation
         let (animation, duration) = if let Some(animation) = animation {
@@ -98,9 +96,9 @@ impl<'a> SkinAnimation<'a> {
         // loop all slots and animate them
         let mut result = Vec::new();
         for (i, slot) in self.skeleton.slots.iter().enumerate() {
-            
+
             // TODO: change attachment if animating
-            
+
             // nothing to show if there is no attachment
             if let Some(ref skin_attach) = self.skin_attachments[i] {
 
