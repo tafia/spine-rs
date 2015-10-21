@@ -7,8 +7,6 @@ use skeleton::error::SkeletonError;
 pub struct SkinAnimation<'a> {
     skeleton: &'a skeleton::Skeleton,
     animation: Option<&'a skeleton::Animation>,
-    // skin: &'a skeleton::Skin,
-    // default_skin: &'a skeleton::Skin,
 
     // attachments as defined by skin name (or default skin) ordered by slot
     // it is possible not to find an attachment for a slot on setup pose
@@ -21,11 +19,10 @@ pub struct SkinAnimation<'a> {
 pub struct Sprite {
     /// attachment name
     pub attachment: String,
-    /// scale, rotate, translate
-    pub srt: skeleton::SRT,
     /// color
     pub color: Vec<u8>,
-    //pub positions: [(f32, f32); 4]
+    /// 4 positions, starting top left and going clock-wise
+    pub positions: [(f32, f32); 4]
 }
 
 impl<'a> SkinAnimation<'a> {
@@ -102,8 +99,8 @@ impl<'a> SkinAnimation<'a> {
             // nothing to show if there is no attachment
             if let Some(ref skin_attach) = self.skin_attachments[i] {
 
-                let mut srt = srts[slot.bone_index].clone();
-                srt.add_assign(&skin_attach.srt);
+                // 4 transformed positions
+                let positions = skin_attach.get_positions(&srts[slot.bone_index]);
 
                 // color
                 let color = self.animation
@@ -111,13 +108,14 @@ impl<'a> SkinAnimation<'a> {
                         .find(|&&(idx, _)| idx == i )
                         .map(|&(_, ref anim)| (*anim).interpolate_color(time)))
                     .unwrap_or(vec![255, 255, 255, 255]);
-
+                
+                // attachment name
                 let attach_name = skin_attach.name.clone().or_else(|| slot.attachment.clone())
                     .expect("no attachment name provided");
 
                 result.push(Sprite {
                     attachment: attach_name,
-                    srt: srt,
+                    positions: positions,
                     color: color
                 });
             }
