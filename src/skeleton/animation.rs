@@ -22,7 +22,7 @@ pub struct Sprite {
     /// color
     pub color: Vec<u8>,
     /// 4 positions, starting top left and going clock-wise
-    pub positions: [(f32, f32); 4]
+    pub positions: [[f32; 2]; 4]
 }
 
 impl<'a> SkinAnimation<'a> {
