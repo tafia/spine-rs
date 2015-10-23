@@ -121,16 +121,16 @@ impl<T> CurveTimeline<T> {
     fn get_percent(&self, percent: f32) -> f32 {
 
         let &(ref x,  ref y) = match self.curve {
-            json::TimelineCurve::CurveStepped => return 0f32,
-            json::TimelineCurve::CurveLinear  => return percent,
-            json::TimelineCurve::CurveBezier(..)  => self.points.as_ref().unwrap()
+            json::TimelineCurve::CurveStepped    => return 0f32,
+            json::TimelineCurve::CurveLinear     => return percent,
+            json::TimelineCurve::CurveBezier(..) => self.points.as_ref().unwrap()
         };
 
         // bezier curve
         match x.iter().position(|&xi| percent >= xi) {
             Some(0) => y[0] * percent / x[0],
             Some(i) => y[i - 1] + (y[i] - y[i - 1]) * (percent - x[i - 1]) / (x[i] - x[i - 1]),
-            None => y[x.len()] + (1f32 - y[x.len()] * (percent - x[x.len()]) / (1f32 - x[x.len()]))
+            None => y[x.len()] + (1f32 - y[x.len()]) * (percent - x[x.len()]) / (1f32 - x[x.len()])
         }
     }
 }
