@@ -82,11 +82,15 @@ impl<'a> SkinAnimation<'a> {
             // change world from parent srt
             if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
                 srt.position = parent_srt.transform(srt.position);
-                srt.rotation += parent_srt.rotation;
-                srt.cos = srt.rotation.cos();
-                srt.sin = srt.rotation.sin();
-                srt.scale[0] *= parent_srt.scale[0];
-                srt.scale[1] *= parent_srt.scale[1];
+                if b.inherit_rotation {
+                    srt.rotation += parent_srt.rotation;
+                    srt.cos = srt.rotation.cos();
+                    srt.sin = srt.rotation.sin();
+                }
+                if b.inherit_scale {
+                    srt.scale[0] *= parent_srt.scale[0];
+                    srt.scale[1] *= parent_srt.scale[1];
+                }
                 // TODO: implement do not inherit rotation/scale
             }
 

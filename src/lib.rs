@@ -469,7 +469,7 @@ fn get_bone_default_local_setup(bone: &json::Bone) -> BoneData {
     BoneData {
         position: (bone.x.unwrap_or(0.0), bone.y.unwrap_or(0.0)),
         rotation: bone.rotation.unwrap_or(0.0),
-        scale: (bone.scaleX.unwrap_or(1.0), bone.scaleY.unwrap_or(1.0)),
+        scale: (bone.scale_x.unwrap_or(1.0), bone.scale_y.unwrap_or(1.0)),
     }
 }
 
@@ -479,8 +479,8 @@ fn get_attachment_transformation(attachment: &json::Attachment) -> Matrix4<f32> 
         position: (attachment.x.unwrap_or(0.0), attachment.y.unwrap_or(0.0)),
         rotation: attachment.rotation.unwrap_or(0.0),
         scale: (
-            attachment.scaleX.unwrap_or(1.0) * attachment.width.unwrap_or(1.0) / 2.0,
-            attachment.scaleY.unwrap_or(1.0) * attachment.height.unwrap_or(1.0) / 2.0
+            attachment.scale_x.unwrap_or(1.0) * attachment.width.unwrap_or(1.0) / 2.0,
+            attachment.scale_y.unwrap_or(1.0) * attachment.height.unwrap_or(1.0) / 2.0
         ),
     }.to_matrix()
 }

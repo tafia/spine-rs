@@ -246,7 +246,9 @@ struct Bone {
     name: String,
     parent_index: Option<usize>,
     length: f32,
-    srt: SRT
+    srt: SRT,
+    inherit_scale: bool,
+    inherit_rotation: bool
 }
 
 impl Bone {
@@ -259,7 +261,9 @@ impl Bone {
             name: bone.name,
             parent_index: index,
             length: bone.length.unwrap_or(0f32),
-            srt: SRT::new(bone.scaleX, bone.scaleY, bone.rotation, bone.x, bone.y)
+            srt: SRT::new(bone.scale_x, bone.scale_y, bone.rotation, bone.x, bone.y),
+            inherit_scale: bone.inherit_scale.unwrap_or(true),
+            inherit_rotation: bone.inherit_rotation.unwrap_or(true),
         })
     }
 }
@@ -298,7 +302,7 @@ struct Attachment {
 
 impl Attachment {
     fn from_json(attachment: json::Attachment) -> Attachment {
-        let srt = SRT::new(attachment.scaleX, attachment.scaleY,
+        let srt = SRT::new(attachment.scale_x, attachment.scale_y,
                            attachment.rotation,
                            attachment.x, attachment.y);
         let (w2, h2) = (attachment.width.unwrap_or(0f32) / 2.0,
