@@ -53,8 +53,6 @@ impl<'a> SkinAnimation<'a> {
         Ok(SkinAnimation {
             skeleton: skeleton,
             animation: animation,
-            // skin: skin,
-            // default_skin: default_skin,
             duration: duration,
             skin_attachments: skin_attachments,
         })
@@ -71,20 +69,25 @@ impl<'a> SkinAnimation<'a> {
         let mut srts: Vec<skeleton::SRT> = Vec::with_capacity(self.skeleton.bones.len());
         for (i, b) in self.skeleton.bones.iter().enumerate() {
 
-            // starts with default bone srt
+            // starts with setup pose
             let mut srt = b.srt.clone();
 
-            // parent srt: translate bone (do not inherit scale and rotation yet)
-            if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
-                srt.position.0 += parent_srt.position.0;
-                srt.position.1 += parent_srt.position.1;
-            }
-
-            // animation srt
+            // add animation srt
             if let Some(anim_srt) = self.animation
                 .and_then(|anim| anim.bones.iter().find(|&&(idx, _)| idx == i ))
                 .map(|&(_, ref anim)| anim.srt(time)) {
                 srt.add_assign(&anim_srt);
+            }
+
+            // change world from parent srt
+            if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
+                srt.position = parent_srt.transform(srt.position);
+                srt.rotation += parent_srt.rotation;
+                srt.cos = srt.rotation.cos();
+                srt.sin = srt.rotation.sin();
+                srt.scale[0] *= parent_srt.scale[0];
+                srt.scale[1] *= parent_srt.scale[1];
+                // TODO: implement do not inherit rotation/scale
             }
 
             srts.push(srt)
@@ -108,7 +111,7 @@ impl<'a> SkinAnimation<'a> {
                         .find(|&&(idx, _)| idx == i )
                         .map(|&(_, ref anim)| (*anim).interpolate_color(time)))
                     .unwrap_or(vec![255, 255, 255, 255]);
-                
+
                 // attachment name
                 let attach_name = skin_attach.name.clone().or_else(|| slot.attachment.clone())
                     .expect("no attachment name provided");

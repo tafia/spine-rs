@@ -207,13 +207,19 @@ impl BoneTimeline {
     /// evaluates the interpolations for elapsed time on all timelines and
     /// returns the corresponding srt
     pub fn srt(&self, elapsed: f32) -> skeleton::SRT {
-    	let position = self.translate.interpolate(elapsed).unwrap_or((0f32, 0f32));
-    	let rotation = self.rotate.interpolate(elapsed).unwrap_or(0f32);
-    	let scale = self.scale.interpolate(elapsed).unwrap_or((1f32, 1f32));
+
+        use std::f32::consts::PI;
+        const TO_RADIAN: f32 = PI / 180f32;
+
+    	let position = self.translate.interpolate(elapsed).map_or([0f32, 0f32], |(x, y)| [x, y]);
+    	let rotation = self.rotate.interpolate(elapsed).unwrap_or(0f32) * TO_RADIAN;
+    	let scale = self.scale.interpolate(elapsed).map_or([1f32, 1f32], |(x, y)| [x, y]);
     	skeleton::SRT {
     	    scale: scale,
     	    position: position,
-    	    rotation: rotation
+    	    rotation: rotation,
+            cos: rotation.cos(),
+            sin: rotation.sin()
     	}
     }
 }

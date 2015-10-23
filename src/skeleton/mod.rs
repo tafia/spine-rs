@@ -195,24 +195,50 @@ impl Animation {
 
 /// Scale, Rotate, Translate struct
 #[derive(Debug, Clone)]
-pub struct SRT {
+struct SRT {
     /// scale
-    pub scale: (f32, f32),
+    scale: [f32; 2],
     /// rotation
-    pub rotation: f32,
+    rotation: f32,
     /// position or translation
-    pub position: (f32, f32),
+    position: [f32; 2],
+    cos: f32,
+    sin: f32
 }
 
 impl SRT {
-    /// add assign other srt to current srt
-    pub fn add_assign(&mut self, other: &SRT) {
-        self.position.0 += other.position.0;
-        self.position.1 += other.position.1;
-        self.rotation += other.rotation;
-        self.scale.0 *= other.scale.0;
-        self.scale.1 *= other.scale.1;
+
+    /// new srt
+    fn new(scale_x: Option<f32>, scale_y: Option<f32>,
+           rotation_deg: Option<f32>,
+           translation_x: Option<f32>, translation_y: Option<f32>) -> SRT {
+        let rotation = rotation_deg.unwrap_or(0f32) * TO_RADIAN;
+        SRT {
+            scale: [scale_x.unwrap_or(1f32), scale_y.unwrap_or(1f32)],
+            rotation: rotation,
+            position: [translation_x.unwrap_or(0f32), translation_y.unwrap_or(0f32)],
+            cos: rotation.cos(),
+            sin: rotation.sin()
+        }
     }
+
+    /// add assign other srt to current srt
+    fn add_assign(&mut self, other: &SRT) {
+        self.position[0] += other.position[0];
+        self.position[1] += other.position[1];
+        self.rotation += other.rotation;
+        self.scale[0] *= other.scale[0];
+        self.scale[1] *= other.scale[1];
+        self.cos = self.rotation.cos();
+        self.sin = self.rotation.sin();
+    }
+
+    /// apply srt on a 2D point
+    fn transform(&self, v: [f32; 2]) -> [f32; 2] {
+        [self.cos * v[0] * self.scale[0] - self.sin * v[1] * self.scale[1] + self.position[0],
+         self.sin * v[0] * self.scale[0] + self.cos * v[1] * self.scale[1] + self.position[1]]
+    }
+
 }
 
 /// skeleton bone
@@ -233,11 +259,7 @@ impl Bone {
             name: bone.name,
             parent_index: index,
             length: bone.length.unwrap_or(0f32),
-            srt: SRT {
-                scale: (bone.scaleX.unwrap_or(1f32), bone.scaleY.unwrap_or(1f32)),
-                rotation: bone.rotation.unwrap_or(0f32) * TO_RADIAN,
-                position: (bone.x.unwrap_or(0f32), bone.y.unwrap_or(0f32)),
-            }
+            srt: SRT::new(bone.scaleX, bone.scaleY, bone.rotation, bone.x, bone.y)
         })
     }
 }
@@ -264,55 +286,40 @@ impl Slot {
 }
 
 /// skeletom animation
+#[derive(Debug)]
 struct Attachment {
     name: Option<String>,
     type_: json::AttachmentType,
-    srt: SRT,
-    size: (f32, f32),
-    fps: Option<f32>,
-    mode: Option<String>,
+    positions: [[f32; 2]; 4]
+    // fps: Option<f32>,
+    // mode: Option<String>,
     //vertices: Option<Vec<??>>     // TODO: ?
-}
-
-macro_rules! rotate_translate {
-    ($v: expr, $rotation: expr, $translate: expr) => {
-        [$rotation[0][0] * $v[0] + $rotation[0][1] * $v[1] + $translate.0, 
-         $rotation[1][0] * $v[0] + $rotation[1][1] * $v[1] + $translate.1]
-    };
 }
 
 impl Attachment {
     fn from_json(attachment: json::Attachment) -> Attachment {
+        let srt = SRT::new(attachment.scaleX, attachment.scaleY,
+                           attachment.rotation,
+                           attachment.x, attachment.y);
+        let (w2, h2) = (attachment.width.unwrap_or(0f32) / 2.0,
+                        attachment.height.unwrap_or(0f32) / 2.0);
         Attachment {
             name: attachment.name,
             type_: attachment.type_.unwrap_or(json::AttachmentType::Region),
-            srt: SRT {
-                scale: (attachment.scaleX.unwrap_or(1f32), attachment.scaleY.unwrap_or(1f32)),
-                rotation: attachment.rotation.unwrap_or(0f32) * TO_RADIAN,
-                position: (attachment.x.unwrap_or(0f32), attachment.y.unwrap_or(0f32)),
-            },
-            size: (attachment.width.unwrap_or(0f32), attachment.height.unwrap_or(0f32)),
-            fps: attachment.fps,
-            mode: attachment.mode
+            positions: [srt.transform([-w2,  h2]),
+                        srt.transform([w2,  h2]),
+                        srt.transform([w2,  -h2]),
+                        srt.transform([-w2,  -h2])]
+            // fps: attachment.fps,
+            // mode: attachment.mode
         }
     }
-    
+
     /// gets 4 positions defining the transformed attachment
     fn get_positions(&self, srt: &SRT) -> [[f32; 2]; 4] {
-        // compute final transformations
-        let mut final_srt = self.srt.clone();
-        final_srt.add_assign(&srt);
-        // scaled half-sizes (shape is initially centered)
-        let (w2, h2) = (self.size.0 / 2.0 * final_srt.scale.0, 
-                        self.size.1 / 2.0 * final_srt.scale.1);
-        // rotation matrix
-        let (cos, sin) = (final_srt.rotation.cos(), final_srt.rotation.sin());
-        let rotation = [[cos, -sin], [sin, cos]];
-        // apply rotation then translation on each vector
-        [rotate_translate!([-w2,  h2], rotation, final_srt.position),
-         rotate_translate!([ w2,  h2], rotation, final_srt.position),
-         rotate_translate!([ w2, -h2], rotation, final_srt.position),
-         rotate_translate!([-w2, -h2], rotation, final_srt.position)]
+        [srt.transform(self.positions[0]),
+         srt.transform(self.positions[1]),
+         srt.transform(self.positions[2]),
+         srt.transform(self.positions[3])]
     }
 }
-
