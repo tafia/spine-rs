@@ -61,7 +61,10 @@ impl_curve!(json::BoneScaleTimeline, (f32, f32), |t: &json::BoneScaleTimeline| {
 });
 
 impl_curve!(json::BoneRotateTimeline, f32, |t: &json::BoneRotateTimeline| {
-    Ok(t.angle.unwrap_or(0f32))
+    let mut angle = t.angle.unwrap_or(0f32);
+    while angle > 180.0 { angle -= 360.0; }
+    while angle < -180.0 { angle += 360.0; }
+    Ok(angle)
 });
 
 impl_curve!(json::SlotColorTimeline, Vec<u8>, |t: &json::SlotColorTimeline| {
