@@ -170,7 +170,6 @@ impl Animation {
         }
 
         Ok(Animation {
-            // data: animation,
             duration: duration,
             bones: abones,
             slots: aslots,
@@ -202,35 +201,24 @@ struct SRT {
     rotation: f32,
     /// position or translation
     position: [f32; 2],
+    // cosinus
     cos: f32,
+    // sinus
     sin: f32
 }
 
 impl SRT {
 
     /// new srt
-    fn new(scale_x: Option<f32>, scale_y: Option<f32>,
-           rotation_deg: Option<f32>,
-           translation_x: Option<f32>, translation_y: Option<f32>) -> SRT {
-        let rotation = rotation_deg.unwrap_or(0f32) * TO_RADIAN;
+    fn new(scale_x: f32, scale_y: f32, rotation_deg: f32, x: f32, y: f32) -> SRT {
+        let rotation = rotation_deg * TO_RADIAN;
         SRT {
-            scale: [scale_x.unwrap_or(1f32), scale_y.unwrap_or(1f32)],
+            scale: [scale_x, scale_y],
             rotation: rotation,
-            position: [translation_x.unwrap_or(0f32), translation_y.unwrap_or(0f32)],
+            position: [x, y],
             cos: rotation.cos(),
             sin: rotation.sin()
         }
-    }
-
-    /// add assign other srt to current srt
-    fn add_assign(&mut self, other: &SRT) {
-        self.position[0] += other.position[0];
-        self.position[1] += other.position[1];
-        self.rotation += other.rotation;
-        self.scale[0] *= other.scale[0];
-        self.scale[1] *= other.scale[1];
-        self.cos = self.rotation.cos();
-        self.sin = self.rotation.sin();
     }
 
     /// apply srt on a 2D point
@@ -261,7 +249,8 @@ impl Bone {
             name: bone.name,
             parent_index: index,
             length: bone.length.unwrap_or(0f32),
-            srt: SRT::new(bone.scale_x, bone.scale_y, bone.rotation, bone.x, bone.y),
+            srt: SRT::new(bone.scale_x.unwrap_or(1.0), bone.scale_y.unwrap_or(1.0),
+                bone.rotation.unwrap_or(0.0), bone.x.unwrap_or(0.0), bone.y.unwrap_or(0.0)),
             inherit_scale: bone.inherit_scale.unwrap_or(true),
             inherit_rotation: bone.inherit_rotation.unwrap_or(true),
         })
@@ -301,10 +290,11 @@ struct Attachment {
 }
 
 impl Attachment {
+    /// converts json data into skeleton data
     fn from_json(attachment: json::Attachment) -> Attachment {
-        let srt = SRT::new(attachment.scale_x, attachment.scale_y,
-                           attachment.rotation,
-                           attachment.x, attachment.y);
+        let srt = SRT::new(attachment.scale_x.unwrap_or(1.0), attachment.scale_y.unwrap_or(1.0),
+                           attachment.rotation.unwrap_or(0.0),
+                           attachment.x.unwrap_or(0.0), attachment.y.unwrap_or(0.0));
         let (w2, h2) = (attachment.width.unwrap_or(0f32) / 2.0,
                         attachment.height.unwrap_or(0f32) / 2.0);
         Attachment {

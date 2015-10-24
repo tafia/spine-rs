@@ -16,6 +16,7 @@ pub struct SkinAnimation<'a> {
 }
 
 /// Interpolated slot with attachment and color
+#[derive(Debug)]
 pub struct Sprite {
     /// attachment name
     pub attachment: String,
@@ -76,10 +77,16 @@ impl<'a> SkinAnimation<'a> {
             if let Some(anim_srt) = self.animation
                 .and_then(|anim| anim.bones.iter().find(|&&(idx, _)| idx == i ))
                 .map(|&(_, ref anim)| anim.srt(time)) {
-                srt.add_assign(&anim_srt);
+                srt.position[0] += anim_srt.position[0];
+                srt.position[1] += anim_srt.position[1];
+                srt.rotation += anim_srt.rotation;
+                srt.scale[0] *= anim_srt.scale[0];
+                srt.scale[1] *= anim_srt.scale[1];
+                srt.cos = srt.rotation.cos();
+                srt.sin = srt.rotation.sin();
             }
 
-            // change world from parent srt
+            // inherit world from parent srt
             if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
                 srt.position = parent_srt.transform(srt.position);
                 if b.inherit_rotation {
@@ -91,7 +98,6 @@ impl<'a> SkinAnimation<'a> {
                     srt.scale[0] *= parent_srt.scale[0];
                     srt.scale[1] *= parent_srt.scale[1];
                 }
-                // TODO: implement do not inherit rotation/scale
             }
 
             srts.push(srt)
