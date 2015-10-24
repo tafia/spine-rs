@@ -21,12 +21,15 @@ pub struct Bone {
     pub length: Option<f32>,
     pub x: Option<f32>,
     pub y: Option<f32>,
-    pub scaleX: Option<f32>,
-    pub scaleY: Option<f32>,
+    pub scale_x: Option<f32>,
+    pub scale_y: Option<f32>,
     pub rotation: Option<f32>,
+    pub inherit_scale: Option<bool>,
+    pub inherit_rotation: Option<bool>
 }
 
-derive_from_json!(Bone, name, parent, length, x, y, scaleX, scaleY, rotation);
+derive_from_json!(Bone, name, parent, length, x, y, scale_x as "scaleX", scale_y as "scaleY",
+                  rotation, inherit_scale as "inheritScale", inherit_rotation as "inheritRotation");
 
 #[derive(Debug, Clone)]
 pub struct Slot {
@@ -44,8 +47,8 @@ pub struct Attachment {
     pub type_: Option<AttachmentType>,
     pub x: Option<f32>,
     pub y: Option<f32>,
-    pub scaleX: Option<f32>,
-    pub scaleY: Option<f32>,
+    pub scale_x: Option<f32>,
+    pub scale_y: Option<f32>,
     pub rotation: Option<f32>,
     pub width: Option<f32>,
     pub height: Option<f32>,
@@ -54,8 +57,8 @@ pub struct Attachment {
     //vertices: Option<Vec<??>>     // TODO: ?
 }
 
-derive_from_json!(Attachment, name, type_ as "type", x, y, scaleX, scaleY, rotation, width, height,
-                  fps, mode);
+derive_from_json!(Attachment, name, type_ as "type", x, y,
+                  scale_x as "scaleX", scale_y as "scaleY", rotation, width, height, fps, mode);
 
 #[derive(Debug, Clone)]
 pub enum AttachmentType {

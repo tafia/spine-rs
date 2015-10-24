@@ -120,17 +120,21 @@ impl<T> CurveTimeline<T> {
     /// Get percent conversion depending on curve type
     fn get_percent(&self, percent: f32) -> f32 {
 
+
         let &(ref x,  ref y) = match self.curve {
-            json::TimelineCurve::CurveStepped => return 0f32,
-            json::TimelineCurve::CurveLinear  => return percent,
-            json::TimelineCurve::CurveBezier(..)  => self.points.as_ref().unwrap()
+            json::TimelineCurve::CurveStepped    => return 0f32,
+            json::TimelineCurve::CurveLinear     => return percent,
+            json::TimelineCurve::CurveBezier(..) => self.points.as_ref().unwrap()
         };
 
         // bezier curve
-        match x.iter().position(|&xi| percent >= xi) {
+        match x.iter().position(|&xi| percent < xi) {
             Some(0) => y[0] * percent / x[0],
-            Some(i) => y[i - 1] + (y[i] - y[i - 1]) * (percent - x[i - 1]) / (x[i] - x[i - 1]),
-            None => y[x.len()] + (1f32 - y[x.len()] * (percent - x[x.len()]) / (1f32 - x[x.len()]))
+            Some(i) => y[i] + (y[i] - y[i - 1]) * (percent - x[i - 1]) / (x[i] - x[i - 1]),
+            None => {
+                let (x, y) = (x[BEZIER_SEGMENTS - 1], y[BEZIER_SEGMENTS - 1]);
+                y + (1f32 - y) * (percent - x) / (1f32 - x)
+            }
         }
     }
 }
@@ -172,8 +176,8 @@ impl<T: Interpolate + Clone> CurveTimelines<T> {
     	    return None;
     	}
 
-    	if let Some(w) = self.timelines.windows(2).find(|&w| w[0].time >= elapsed) {
-    	    let percent = 1f32 - (elapsed - w[0].time) / (w[1].time - w[0].time);
+    	if let Some(w) = self.timelines.windows(2).find(|&w| elapsed < w[1].time) {
+    	    let percent = (elapsed - w[0].time) / (w[1].time - w[0].time);
     	    let curve_percent = w[0].get_percent(percent);
     	    Some(w[0].value.interpolate(&w[1].value, curve_percent))
     	} else {
@@ -207,14 +211,10 @@ impl BoneTimeline {
     /// evaluates the interpolations for elapsed time on all timelines and
     /// returns the corresponding srt
     pub fn srt(&self, elapsed: f32) -> skeleton::SRT {
-    	let position = self.translate.interpolate(elapsed).unwrap_or((0f32, 0f32));
+    	let (x, y) = self.translate.interpolate(elapsed).unwrap_or((0f32, 0f32));
     	let rotation = self.rotate.interpolate(elapsed).unwrap_or(0f32);
-    	let scale = self.scale.interpolate(elapsed).unwrap_or((1f32, 1f32));
-    	skeleton::SRT {
-    	    scale: scale,
-    	    position: position,
-    	    rotation: rotation
-    	}
+    	let (scale_x, scale_y) = self.scale.interpolate(elapsed).unwrap_or((1.0, 1.0));
+    	skeleton::SRT::new(scale_x, scale_y, rotation, x, y)
     }
 }
 

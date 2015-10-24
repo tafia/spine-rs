@@ -7,8 +7,6 @@ use skeleton::error::SkeletonError;
 pub struct SkinAnimation<'a> {
     skeleton: &'a skeleton::Skeleton,
     animation: Option<&'a skeleton::Animation>,
-    // skin: &'a skeleton::Skin,
-    // default_skin: &'a skeleton::Skin,
 
     // attachments as defined by skin name (or default skin) ordered by slot
     // it is possible not to find an attachment for a slot on setup pose
@@ -18,14 +16,14 @@ pub struct SkinAnimation<'a> {
 }
 
 /// Interpolated slot with attachment and color
+#[derive(Debug)]
 pub struct Sprite {
     /// attachment name
     pub attachment: String,
-    /// scale, rotate, translate
-    pub srt: skeleton::SRT,
     /// color
     pub color: Vec<u8>,
-    //pub positions: [(f32, f32); 4]
+    /// 4 positions, starting top left and going clock-wise
+    pub positions: [[f32; 2]; 4]
 }
 
 impl<'a> SkinAnimation<'a> {
@@ -56,8 +54,6 @@ impl<'a> SkinAnimation<'a> {
         Ok(SkinAnimation {
             skeleton: skeleton,
             animation: animation,
-            // skin: skin,
-            // default_skin: default_skin,
             duration: duration,
             skin_attachments: skin_attachments,
         })
@@ -74,20 +70,34 @@ impl<'a> SkinAnimation<'a> {
         let mut srts: Vec<skeleton::SRT> = Vec::with_capacity(self.skeleton.bones.len());
         for (i, b) in self.skeleton.bones.iter().enumerate() {
 
-            // starts with default bone srt
+            // starts with setup pose
             let mut srt = b.srt.clone();
 
-            // parent srt: translate bone (do not inherit scale and rotation yet)
-            if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
-                srt.position.0 += parent_srt.position.0;
-                srt.position.1 += parent_srt.position.1;
-            }
-
-            // animation srt
+            // add animation srt
             if let Some(anim_srt) = self.animation
                 .and_then(|anim| anim.bones.iter().find(|&&(idx, _)| idx == i ))
                 .map(|&(_, ref anim)| anim.srt(time)) {
-                srt.add_assign(&anim_srt);
+                srt.position[0] += anim_srt.position[0];
+                srt.position[1] += anim_srt.position[1];
+                srt.rotation += anim_srt.rotation;
+                srt.scale[0] *= anim_srt.scale[0];
+                srt.scale[1] *= anim_srt.scale[1];
+                srt.cos = srt.rotation.cos();
+                srt.sin = srt.rotation.sin();
+            }
+
+            // inherit world from parent srt
+            if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
+                srt.position = parent_srt.transform(srt.position);
+                if b.inherit_rotation {
+                    srt.rotation += parent_srt.rotation;
+                    srt.cos = srt.rotation.cos();
+                    srt.sin = srt.rotation.sin();
+                }
+                if b.inherit_scale {
+                    srt.scale[0] *= parent_srt.scale[0];
+                    srt.scale[1] *= parent_srt.scale[1];
+                }
             }
 
             srts.push(srt)
@@ -102,8 +112,8 @@ impl<'a> SkinAnimation<'a> {
             // nothing to show if there is no attachment
             if let Some(ref skin_attach) = self.skin_attachments[i] {
 
-                let mut srt = srts[slot.bone_index].clone();
-                srt.add_assign(&skin_attach.srt);
+                // 4 transformed positions
+                let positions = skin_attach.get_positions(&srts[slot.bone_index]);
 
                 // color
                 let color = self.animation
@@ -112,12 +122,13 @@ impl<'a> SkinAnimation<'a> {
                         .map(|&(_, ref anim)| (*anim).interpolate_color(time)))
                     .unwrap_or(vec![255, 255, 255, 255]);
 
+                // attachment name
                 let attach_name = skin_attach.name.clone().or_else(|| slot.attachment.clone())
                     .expect("no attachment name provided");
 
                 result.push(Sprite {
                     attachment: attach_name,
-                    srt: srt,
+                    positions: positions,
                     color: color
                 });
             }
