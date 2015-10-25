@@ -105,6 +105,10 @@ impl Skeleton {
         })
     }
 
+    fn get_skin<'a>(&'a self, name: &str) -> Result<&'a Skin, SkeletonError> {
+        self.skins.get(name).ok_or(SkeletonError::SkinNotFound(name.to_owned()))
+    }
+
     /// Gets a SkinAnimation which can interpolate slots at a given time
     pub fn get_animated_skin<'a>(&'a self, skin: &str, animation: Option<&str>)
         -> Result<SkinAnimation<'a>, SkeletonError>
@@ -233,7 +237,7 @@ impl SRT {
 struct Bone {
     name: String,
     parent_index: Option<usize>,
-    length: f32,
+    // length: f32,
     srt: SRT,
     inherit_scale: bool,
     inherit_rotation: bool
@@ -248,7 +252,7 @@ impl Bone {
         Ok(Bone {
             name: bone.name,
             parent_index: index,
-            length: bone.length.unwrap_or(0f32),
+            // length: bone.length.unwrap_or(0f32),
             srt: SRT::new(bone.scale_x.unwrap_or(1.0), bone.scale_y.unwrap_or(1.0),
                 bone.rotation.unwrap_or(0.0), bone.x.unwrap_or(0.0), bone.y.unwrap_or(0.0)),
             inherit_scale: bone.inherit_scale.unwrap_or(true),

@@ -27,6 +27,12 @@ impl Interpolate for Vec<u8> {
     }
 }
 
+impl Interpolate for Option<String> {
+    fn interpolate(&self, _: &Self, _: f32) -> Self {
+        self.clone()
+    }
+}
+
 /// Curve trait to define struct with curve property (unwrapped to Linear)
 trait Curve<T> {
     fn time(&self) -> f32;
@@ -71,6 +77,18 @@ impl_curve!(json::SlotColorTimeline, Vec<u8>, |t: &json::SlotColorTimeline| {
     t.color.clone().unwrap_or("FFFFFFFF".into()).from_hex()
         .map_err(|e| skeleton::error::SkeletonError::from(e))
 });
+
+impl Curve<Option<String>> for json::SlotAttachmentTimeline {
+    fn time(&self) -> f32 {
+        self.time
+    }
+    fn curve(&self) -> json::TimelineCurve {
+        json::TimelineCurve::CurveStepped
+    }
+    fn value(&self) -> Result<Option<String>, skeleton::error::SkeletonError> {
+        Ok(self.name.clone())
+    }
+}
 
 struct CurveTimeline<T> {
     time: f32,
@@ -222,19 +240,27 @@ impl BoneTimeline {
 }
 
 pub struct SlotTimeline {
-    attachment: Option<Vec<json::SlotAttachmentTimeline>>,
+    attachment: CurveTimelines<Option<String>>,
     color: CurveTimelines<Vec<u8>>,
 }
 
 impl SlotTimeline {
     pub fn from_json(json: json::SlotTimeline) -> Result<SlotTimeline, skeleton::error::SkeletonError> {
+        let attachment = try!(CurveTimelines::from_json_vec(json.attachment));
         let color = try!(CurveTimelines::from_json_vec(json.color));
         Ok(SlotTimeline {
-            attachment: json.attachment,
+            attachment: attachment,
             color: color
         })
     }
     pub fn interpolate_color(&self, elapsed: f32) -> Vec<u8> {
         self.color.interpolate(elapsed).unwrap_or(vec![255, 255, 255, 255])
+    }
+    pub fn interpolate_attachment(&self, elapsed: f32) -> Option<Option<String>> {
+        self.attachment.interpolate(elapsed)
+    }
+    pub fn get_attachment_names(&self) -> Vec<&str> {
+        self.attachment.timelines.iter()
+            .filter_map(|t| t.value.as_ref().map(|v| &**v)).collect()
     }
 }
