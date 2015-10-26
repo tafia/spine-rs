@@ -105,7 +105,8 @@ impl Skeleton {
         })
     }
 
-    fn get_skin<'a>(&'a self, name: &str) -> Result<&'a Skin, SkeletonError> {
+    /// get skin
+    pub fn get_skin<'a>(&'a self, name: &str) -> Result<&'a Skin, SkeletonError> {
         self.skins.get(name).ok_or(SkeletonError::SkinNotFound(name.to_owned()))
     }
 
@@ -121,7 +122,7 @@ impl Skeleton {
 /// defines a set of slot with custom attachments
 /// slots: Vec<(slot_index, HashMap<custom_attachment_name, Attachment>)>
 /// TODO: simpler architecture
-struct Skin {
+pub struct Skin {
     /// all slots modified by the skin, the default skin contains all skeleton bones
     slots: Vec<(usize, HashMap<String, Attachment>)>
 }
@@ -135,6 +136,12 @@ impl Skin {
             } else {
                 None
             }).next()
+    }
+
+    /// get all attachments and their positions to setup the skeleton's skin
+    pub fn attachment_positions<'a> (&'a self) -> Vec<(&'a str, &'a [[f32; 2]; 4])> {
+        self.slots.iter().flat_map(|&(_, ref attachs)|
+            attachs.iter().map(|(name, ref attach)| (&**name, &attach.positions))).collect()
     }
 }
 
@@ -198,23 +205,23 @@ impl Animation {
 
 /// Scale, Rotate, Translate struct
 #[derive(Debug, Clone)]
-struct SRT {
+pub struct SRT {
     /// scale
-    scale: [f32; 2],
-    /// rotation
-    rotation: f32,
+    pub scale: [f32; 2],
+    /// rotation in radians
+    pub rotation: f32,
     /// position or translation
-    position: [f32; 2],
-    // cosinus
-    cos: f32,
-    // sinus
-    sin: f32
+    pub position: [f32; 2],
+    /// cosinus
+    pub cos: f32,
+    /// sinus
+    pub sin: f32
 }
 
 impl SRT {
 
     /// new srt
-    fn new(scale_x: f32, scale_y: f32, rotation_deg: f32, x: f32, y: f32) -> SRT {
+    pub fn new(scale_x: f32, scale_y: f32, rotation_deg: f32, x: f32, y: f32) -> SRT {
         let rotation = rotation_deg * TO_RADIAN;
         SRT {
             scale: [scale_x, scale_y],
@@ -225,8 +232,8 @@ impl SRT {
         }
     }
 
-    /// apply srt on a 2D point
-    fn transform(&self, v: [f32; 2]) -> [f32; 2] {
+    /// apply srt on a 2D point (consumes the point)
+    pub fn transform(&self, v: [f32; 2]) -> [f32; 2] {
         [self.cos * v[0] * self.scale[0] - self.sin * v[1] * self.scale[1] + self.position[0],
          self.sin * v[0] * self.scale[0] + self.cos * v[1] * self.scale[1] + self.position[1]]
     }
@@ -311,13 +318,5 @@ impl Attachment {
             // fps: attachment.fps,
             // mode: attachment.mode
         }
-    }
-
-    /// gets 4 positions defining the transformed attachment
-    fn get_positions(&self, srt: &SRT) -> [[f32; 2]; 4] {
-        [srt.transform(self.positions[0]),
-         srt.transform(self.positions[1]),
-         srt.transform(self.positions[2]),
-         srt.transform(self.positions[3])]
     }
 }
