@@ -4,6 +4,7 @@ use skeleton;
 use skeleton::error::SkeletonError;
 use std::collections::HashMap;
 
+/// Wrapper on attachment depending whether slot attachment is animated or not
 enum AttachmentWrapper<'a> {
     Static(Option<&'a skeleton::Attachment>),
     Dynamic(Option<&'a skeleton::Attachment>, HashMap<&'a str, Option<&'a skeleton::Attachment>>),
@@ -23,8 +24,8 @@ pub struct Sprite {
     pub attachment: String,
     /// color
     pub color: Vec<u8>,
-    /// 4 positions, starting top left and going clock-wise
-    pub positions: [[f32; 2]; 4]
+    /// srt
+    pub srt: skeleton::SRT
 }
 
 impl<'a> SkinAnimation<'a> {
@@ -88,38 +89,41 @@ impl<'a> SkinAnimation<'a> {
             return None;
         }
 
-        // get all bones srt
+        // calculate all bones srt
         let mut srts: Vec<skeleton::SRT> = Vec::with_capacity(self.anim_bones.len());
         for &(b, anim) in &self.anim_bones {
 
             // starts with setup pose
             let mut srt = b.srt.clone();
+            let mut rotation = 0.0;
 
             // add animation srt
             if let Some(anim_srt) = anim.map(|anim| anim.srt(time)) {
                 srt.position[0] += anim_srt.position[0];
                 srt.position[1] += anim_srt.position[1];
-                srt.rotation += anim_srt.rotation;
+                rotation += anim_srt.rotation;
                 srt.scale[0] *= anim_srt.scale[0];
                 srt.scale[1] *= anim_srt.scale[1];
-                srt.cos = srt.rotation.cos();
-                srt.sin = srt.rotation.sin();
             }
 
             // inherit world from parent srt
             if let Some(ref parent_srt) = b.parent_index.and_then(|p| srts.get(p)) {
                 srt.position = parent_srt.transform(srt.position);
                 if b.inherit_rotation {
-                    srt.rotation += parent_srt.rotation;
-                    srt.cos = srt.rotation.cos();
-                    srt.sin = srt.rotation.sin();
+                    rotation += parent_srt.rotation;
                 }
                 if b.inherit_scale {
                     srt.scale[0] *= parent_srt.scale[0];
                     srt.scale[1] *= parent_srt.scale[1];
                 }
             }
-
+            
+            // re-calculate sin/cos only if rotation has changed
+            if rotation != 0.0 {
+                srt.rotation += rotation;
+                srt.cos = srt.rotation.cos();
+                srt.sin = srt.rotation.sin();
+            }
             srts.push(srt)
         }
 
@@ -145,9 +149,6 @@ impl<'a> SkinAnimation<'a> {
             // nothing to show if there is no attachment
             if let Some(ref skin_attach) = *skin_attach {
 
-                // 4 transformed positions
-                let positions = skin_attach.get_positions(&srts[slot.bone_index]);
-
                 // color
                 let color = anim.map(|anim| anim.interpolate_color(time))
                             .unwrap_or(vec![255, 255, 255, 255]);
@@ -159,7 +160,7 @@ impl<'a> SkinAnimation<'a> {
 
                 result.push(Sprite {
                     attachment: attach_name,
-                    positions: positions,
+                    srt: srts[slot.bone_index].clone(),
                     color: color
                 });
             }
