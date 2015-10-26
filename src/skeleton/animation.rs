@@ -14,7 +14,8 @@ enum AttachmentWrapper<'a> {
 pub struct SkinAnimation<'a> {
     anim_bones: Vec<(&'a skeleton::Bone, Option<&'a skeleton::timelines::BoneTimeline>)>,
     anim_slots: Vec<(&'a skeleton::Slot, AttachmentWrapper<'a>, Option<&'a skeleton::timelines::SlotTimeline>)>,
-    duration: f32
+    /// duration of the longest timeline in the animation
+    pub duration: f32
 }
 
 /// Interpolated slot with attachment and color
@@ -117,7 +118,7 @@ impl<'a> SkinAnimation<'a> {
                     srt.scale[1] *= parent_srt.scale[1];
                 }
             }
-            
+
             // re-calculate sin/cos only if rotation has changed
             if rotation != 0.0 {
                 srt.rotation += rotation;
