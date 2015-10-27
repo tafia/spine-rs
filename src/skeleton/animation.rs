@@ -210,6 +210,7 @@ impl<'a> Iterator for Sprites<'a> {
 }
 
 /// Iterator over a constant period
+#[derive(Clone)]
 pub struct AnimationIter<'a> {
     skin_animation: &'a SkinAnimation<'a>,
     time: f32,
