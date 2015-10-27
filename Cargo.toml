@@ -1,7 +1,8 @@
 [package]
 name = "spine_tiny"
-version = "0.0.1"
-authors = [ "pierre.krieger1708@gmail.com" ]
+version = "0.0.2"
+authors = [ "Pierre Krieger <pierre.krieger1708@gmail.com>",
+            "Johann Tuffe <tafia973@gmail.com>"]
 description = "Simple implementation of the Spine runtime"
 license = "Apache-2.0"
 repository = "https://github.com/tomaka/spine-rs"
