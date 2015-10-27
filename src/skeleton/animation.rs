@@ -14,8 +14,7 @@ enum AttachmentWrapper<'a> {
 pub struct SkinAnimation<'a> {
     anim_bones: Vec<(&'a skeleton::Bone, Option<&'a skeleton::timelines::BoneTimeline>)>,
     anim_slots: Vec<(&'a skeleton::Slot, AttachmentWrapper<'a>, Option<&'a skeleton::timelines::SlotTimeline>)>,
-    /// duration of the longest timeline in the animation
-    pub duration: f32
+    duration: f32
 }
 
 /// Interpolated slot with attachment and color
@@ -81,6 +80,11 @@ impl<'a> SkinAnimation<'a> {
             anim_bones: anim_bones,
             anim_slots: anim_slots,
         })
+    }
+    
+    /// Gets duration of the longest timeline in the animation
+    pub fn get_duration(&self) -> f32 {
+        self.duration
     }
 
     /// Interpolates animated slots at given time
