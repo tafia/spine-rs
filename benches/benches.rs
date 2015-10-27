@@ -65,7 +65,10 @@ fn animation_skeleton_all(bencher: &mut test::Bencher) {
 
     bencher.iter(|| {
         if let Ok(anim) = doc.get_animated_skin("default", Some("walk")) {
-            anim.iter(0.01).nth(100);
+            let mut iter = anim.run(0.01);
+            for _ in 0..100 {
+                let _ = iter.next().map(|sprites| sprites.collect::<Vec<_>>());
+            }
         }
     })
 }
