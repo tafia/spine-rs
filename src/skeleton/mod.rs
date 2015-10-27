@@ -263,6 +263,25 @@ impl SRT {
          self.sin * v[0] * self.scale[0] + self.cos * v[1] * self.scale[1] + self.position[1]]
     }
 
+    /// convert srt to a 3x3 transformation matrix (2D)
+    pub fn to_matrix3(&self) -> [[f32; 3]; 3] {
+        [
+            [ self.cos * self.scale[0], self.sin, 0.0],
+            [-self.sin, self.cos * self.scale[1], 0.0],
+            [ self.position[0] , self.position[1], 1.0f32],
+        ]
+    }
+
+    /// convert srt to a 4x4 transformation matrix (3D)
+    pub fn to_matrix4(&self) -> [[f32; 4]; 4] {
+        [
+            [ self.cos * self.scale[0], self.sin, 0.0, 0.0],
+            [-self.sin, self.cos * self.scale[1], 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0],
+            [ self.position[0] , self.position[1], 0.0, 1.0f32],
+        ]
+    }
+
 }
 
 /// skeleton bone
