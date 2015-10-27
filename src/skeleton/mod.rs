@@ -116,6 +116,31 @@ impl Skeleton {
     {
         SkinAnimation::new(self, skin, animation)
     }
+
+    /// Returns the list of all skins names in this document.
+    pub fn get_skins_names<'a>(&'a self) -> Vec<&'a str> {
+        self.skins.keys().map(|k| &**k).collect()
+    }
+
+    /// Returns the list of all animations names in this document.
+    pub fn get_animations_names<'a>(&'a self) -> Vec<&'a str> {
+        self.animations.keys().map(|k| &**k).collect()
+    }
+
+    /// Returns the list of all attachment names in all skins in this document.
+    ///
+    /// The purpose of this function is to allow you to preload what you need.
+    pub fn get_attachments_names<'a>(&'a self) -> Vec<&'a str> {
+        let mut names: Vec<_> = self.skins.values()
+            .flat_map(|skin| skin.slots.iter()
+                .flat_map(|&(_, ref attach)| attach.iter()
+                    .map(|(k, v)| v.name.as_ref().map(|n| &**n).unwrap_or(&*k))))
+            .collect();
+
+        names.sort();
+        names.dedup();
+        names
+    }
 }
 
 /// Skin
