@@ -34,7 +34,7 @@ fn skins_names() {
 }
 
 #[test]
-fn attachchement_names() {
+fn attachement_names() {
     let src: &[u8] = include_bytes!("example.json");
     let doc = spine::skeleton::Skeleton::from_reader(BufReader::new(src)).unwrap();
 
